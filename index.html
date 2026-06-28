@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#eee4cc" />
+  <title>Kerngestaltung 3D</title>
+  <meta name="description" content="Et levende 3D-felt av organiske kullstreker, magnetiske møtepunkter og mycel-lignende lysvev." />
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #eee4cc;
+      --paper-deep: #e2d3b5;
+      --ink: #332d25;
+      --muted: #756b5e;
+      --panel: rgba(239, 229, 205, 0.82);
+      --edge: rgba(72, 61, 47, 0.18);
+      --glow: #fff2c5;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 32% 18%, rgba(255,255,244,.68), transparent 42%),
+        linear-gradient(135deg, var(--paper), var(--paper-deep));
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .paper-grain,
+    .paper-fibres,
+    .vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .paper-grain {
+      opacity: .22;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.23'/%3E%3C/svg%3E");
+    }
+
+    .paper-fibres {
+      opacity: .16;
+      background:
+        repeating-linear-gradient(8deg, transparent 0 5px, rgba(65,52,36,.05) 6px, transparent 7px 15px),
+        repeating-linear-gradient(94deg, transparent 0 18px, rgba(255,255,255,.13) 19px, transparent 20px 38px);
+      mix-blend-mode: soft-light;
+    }
+
+    .vignette {
+      box-shadow: inset 0 0 13vmax rgba(61, 48, 30, .18);
+    }
+
+    #panel {
+      position: fixed;
+      z-index: 5;
+      top: 18px;
+      left: 18px;
+      width: min(330px, calc(100vw - 36px));
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      padding: 16px 16px 13px;
+      border: 1px solid var(--edge);
+      border-radius: 4px 12px 6px 14px;
+      background: var(--panel);
+      box-shadow: 0 12px 36px rgba(52, 40, 24, .14);
+      backdrop-filter: blur(11px) saturate(.85);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+
+    #panel.hidden {
+      opacity: 0;
+      transform: translateX(-18px);
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: .035em;
+    }
+
+    .subtitle {
+      margin: 4px 0 13px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      letter-spacing: .035em;
+    }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+    }
+
+    .control {
+      display: grid;
+      grid-template-columns: minmax(118px, 1fr) 104px 42px;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .control label { line-height: 1.15; }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #6b5f4e;
+    }
+
+    output {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 2px;
+      font-size: 12px;
+    }
+
+    input[type="checkbox"] { accent-color: #6b5f4e; }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 7px;
+      margin-top: 13px;
+    }
+
+    button {
+      min-height: 34px;
+      border: 1px solid rgba(62, 51, 39, .26);
+      border-radius: 3px 8px 4px 7px;
+      background: rgba(255, 250, 235, .55);
+      color: var(--ink);
+      font: 12px Georgia, "Times New Roman", serif;
+      cursor: pointer;
+    }
+
+    button:hover { background: rgba(255, 250, 235, .84); }
+    button:focus-visible { outline: 2px solid rgba(75, 63, 45, .5); outline-offset: 2px; }
+
+    #stats {
+      display: flex;
+      gap: 12px;
+      margin-top: 11px;
+      padding-top: 9px;
+      border-top: 1px solid var(--edge);
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .keys {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    kbd {
+      padding: 1px 4px;
+      border: 1px solid rgba(61,50,36,.23);
+      border-bottom-width: 2px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.28);
+      font-family: inherit;
+    }
+
+    #hint {
+      position: fixed;
+      z-index: 4;
+      right: 16px;
+      bottom: 13px;
+      color: rgba(53, 44, 34, .62);
+      font-size: 11px;
+      letter-spacing: .025em;
+      pointer-events: none;
+      text-shadow: 0 1px rgba(255,255,255,.45);
+    }
+
+    @media (max-width: 700px) {
+      #panel { top: 10px; left: 10px; width: min(315px, calc(100vw - 20px)); max-height: 62vh; }
+      .control { grid-template-columns: minmax(112px, 1fr) 88px 38px; }
+      #hint { display: none; }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="Kerngestaltung 3D visualisering"></canvas>
+  <div class="paper-grain"></div>
+  <div class="paper-fibres"></div>
+  <div class="vignette"></div>
+
+  <aside id="panel">
+    <h1>Kerngestaltung 3D</h1>
+    <p class="subtitle">Levende kullstreker søker, møtes og fortetter rommet til magnetiske kjerner og et lysende vev.</p>
+
+    <div class="controls">
+      <div class="control">
+        <label for="speed">Strekhastighet</label>
+        <input id="speed" data-setting="speed" type="range" min="0.25" max="3.2" step="0.05" value="1.15" />
+        <output for="speed"></output>
+      </div>
+      <div class="control">
+        <label for="interval">Ny strek hvert</label>
+        <input id="interval" data-setting="spawnInterval" type="range" min="0.4" max="12" step="0.1" value="2.8" />
+        <output for="interval"></output>
+      </div>
+      <div class="control">
+        <label for="organic">Organisk uro</label>
+        <input id="organic" data-setting="organicNoise" type="range" min="0" max="2.2" step="0.05" value="0.9" />
+        <output for="organic"></output>
+      </div>
+      <div class="control">
+        <label for="lineAttraction">Strekfelt</label>
+        <input id="lineAttraction" data-setting="lineAttraction" type="range" min="0" max="0.24" step="0.005" value="0.045" />
+        <output for="lineAttraction"></output>
+      </div>
+      <div class="control">
+        <label for="nodeAttraction">Kjernefelt</label>
+        <input id="nodeAttraction" data-setting="nodeAttraction" type="range" min="0" max="0.5" step="0.01" value="0.12" />
+        <output for="nodeAttraction"></output>
+      </div>
+      <div class="control">
+        <label for="intersection">Møteavstand</label>
+        <input id="intersection" data-setting="intersectionDistance" type="range" min="0.12" max="1.1" step="0.02" value="0.42" />
+        <output for="intersection"></output>
+      </div>
+      <div class="control">
+        <label for="mycelium">Vevvekst</label>
+        <input id="mycelium" data-setting="myceliumGrowth" type="range" min="0" max="2.4" step="0.05" value="0.85" />
+        <output for="mycelium"></output>
+      </div>
+      <div class="control">
+        <label for="maxLines">Maks. streker</label>
+        <input id="maxLines" data-setting="maxLines" type="range" min="8" max="120" step="1" value="52" />
+        <output for="maxLines"></output>
+      </div>
+
+      <div class="switch-row">
+        <label for="autoSpawn">Automatisk generering</label>
+        <input id="autoSpawn" type="checkbox" checked />
+      </div>
+      <div class="switch-row">
+        <label for="showFields">Vis svake feltglorier</label>
+        <input id="showFields" type="checkbox" checked />
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="newLine" type="button">Ny strek</button>
+      <button id="pause" type="button">Pause</button>
+      <button id="reset" type="button">Nullstill</button>
+    </div>
+
+    <div id="stats" aria-live="polite">
+      <span id="lineCount">0 streker</span>
+      <span id="nodeCount">0 kjerner</span>
+      <span id="filamentCount">0 tråder</span>
+    </div>
+    <div class="keys"><kbd>N</kbd>/<kbd>mellomrom</kbd> ny strek · <kbd>P</kbd> pause · <kbd>F</kbd> felt · <kbd>H</kbd> panel · <kbd>R</kbd> nullstill</div>
+  </aside>
+
+  <div id="hint">Dra for å rotere · rull for dybde · høyreklikk-dra for forskyvning</div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
